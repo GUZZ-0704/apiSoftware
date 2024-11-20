@@ -9,4 +9,3 @@ module.exports = (sequelize, Sequelize) => {
     });
     return CostoFijo;
 }
-y 
