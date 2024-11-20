@@ -26,5 +26,11 @@ module.exports = app => {
     router.delete("/tarea/:id", authMiddleware, proyectoController.eliminarTareaDeProyecto);
     //actualizarEstadoProyecto
     router.put("/estado/:id", authMiddleware, proyectoController.actualizarEstadoProyecto);
+    //obtenerProyectoPorAdminId
+    router.get("/admin/:id", authMiddleware, proyectoController.getProyectosByAdminId);
+    //obtenerProyectoDondeParticipo
+    router.get("/usuario/:id", authMiddleware, proyectoController.getProyectosDondeParticipo);
+
+    
     app.use("/proyectos", router);
 };
