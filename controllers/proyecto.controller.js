@@ -218,3 +218,57 @@ exports.actualizarEstadoProyecto = async (req, res) => {
     }
 };
 
+exports.getProyectosByAdminId = async (req, res) => {
+    const id = req.params.id;
+    try {
+        const data = await Proyecto.findAll({
+            where: {
+                usuarioId: id,
+            },
+            include: [
+                { model: db.usuario, as: "administrador" }, // Incluye el administrador del proyecto
+                { model: db.usuario, as: "equipo" }, // Incluye el equipo del proyecto
+                { model: db.tarea, as: "tareas" }, // Incluye las tareas del proyecto
+                { model: db.inventario, as: "inventarios" }, // Incluye los inventarios del proyecto
+            ],
+        });
+        if (!data) return res.status(404).send({ message: "Proyecto no encontrado." });
+        res.send(data);
+    } catch (error) {
+        res.status(500).send({ message: error.message || "Error al obtener el proyecto." });
+    }
+};
+
+exports.getProyectosDondeParticipo = async (req, res) => {
+    const usuarioId = req.params.id; // ID del usuario que realiza la solicitud
+
+    try {
+        const proyectos = await Proyecto.findAll({
+            include: [
+                {
+                    model: db.usuario,
+                    as: "equipo",
+                    through: { attributes: [] },
+                    where: { id: usuarioId },
+                },
+                {
+                    model: db.usuario,
+                    as: "administrador",
+                    attributes: ["id", "nombre"]
+                },
+                { model: db.tarea, as: "tareas" }, // Incluye tareas
+                { model: db.inventario, as: "inventarios" }, // Incluye inventarios
+            ],
+            where: {
+                usuarioId: { [db.Sequelize.Op.ne]: usuarioId }, // Excluye proyectos donde el usuario es administrador
+            },
+        });
+
+        res.send(proyectos);
+    } catch (error) {
+        console.error("Error al obtener proyectos con usuarios:", error);
+        res.status(500).send({
+            message: error.message || "Error al obtener los proyectos.",
+        });
+    }
+};
