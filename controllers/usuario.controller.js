@@ -66,7 +66,7 @@ exports.login = async (req, res) => {
             { expiresIn: "1h" } // Token válido por 1 hora
         );
 
-        res.status(200).send({ message: "Inicio de sesión exitoso.", token });
+        res.status(200).send({ message: "Inicio de sesión exitoso.", token, id: user.id })
     } catch (error) {
         res.status(500).send({ message: error.message || "Error al iniciar sesión." });
     }
