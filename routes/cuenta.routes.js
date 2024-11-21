@@ -38,5 +38,12 @@ module.exports = (app) => {
     cuentaController.listaFlujoEfectivo
   );
 
+  //Obtener balance de comprobación
+  router.get(
+    "/balanceComprobacion/lista",
+    authMiddleware,
+    cuentaController.listaBalanceComprobacion
+  );
+
   app.use("/cuentas", router);
 };

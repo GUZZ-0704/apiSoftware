@@ -332,3 +332,62 @@ calcularTotalCuentaPorMes = async (id, res) => {
       .send({ message: error.message || "Error al obtener las cuentas." });
   }
 };
+
+//obtener todas las cuentas finales con su debe y haber
+exports.listaBalanceComprobacion = async (req, res) => {
+  try {
+    const cuentas = await Cuenta.findAll({
+      include: ["cuentasHijas"],
+    });
+
+    const cuentasFinales = cuentas.filter(
+      (cuenta) => cuenta.cuentasHijas.length === 0
+    );
+
+    //devolver cuentas divididas por tipo
+    const cuentasDivididas = await cuentasFinales.reduce(
+      async (accPromise, cuenta) => {
+        const acc = await accPromise;
+        if (!acc[cuenta.tipo]) {
+          acc[cuenta.tipo] = [];
+        }
+        // Add total attribute to cuenta
+        await totalDebeHaber(cuenta.id).then((total) => {
+          cuenta.dataValues.totalDebe = total.totalDebe;
+          cuenta.dataValues.totalHaber = total.totalHaber;
+          acc[cuenta.tipo].push(cuenta);
+        });
+        return acc;
+      },
+      Promise.resolve({})
+    );
+
+    res.send(cuentasDivididas);
+  } catch (error) {
+    res
+      .status(500)
+      .send({ message: error.message || "Error al obtener las cuentas." });
+  }
+};
+
+totalDebeHaber = async (id) => {
+  try {
+    //conseguir el total de debe haber de cuenta
+    const cuenta = await Cuenta.findByPk(id, {
+      include: ["detallesTransacciones"],
+    });
+    let totalDebe = 0;
+    let totalHaber = 0;
+
+    cuenta.detallesTransacciones.forEach((detalle) => {
+      totalDebe += detalle.debe;
+      totalHaber += detalle.haber;
+    });
+
+    return { totalDebe, totalHaber };
+  } catch (error) {
+    res
+      .status(500)
+      .send({ message: error.message || "Error al obtener las cuentas." });
+  }
+};
