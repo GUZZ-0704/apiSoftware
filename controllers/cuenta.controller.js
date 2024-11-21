@@ -146,7 +146,7 @@ exports.crearCuentaHija = async (req, res) => {
   }
 };
 
-// Se consiguen todas las cuentas finales de los activos, pasivos y patrimonio
+// Se consiguen todas las cuentas finales de los activos, pasivos, patrimonio, ingresos y egresos
 exports.listaBalanceGeneral = async (req, res) => {
   try {
     const cuentas = await Cuenta.findAll({
@@ -157,8 +157,12 @@ exports.listaBalanceGeneral = async (req, res) => {
       (cuenta) => cuenta.cuentasHijas.length === 0
     );
 
-    //devolver cuentas divididas por tipo
-    const tiposPermitidos = ["Activo", "Pasivo", "Patrimonio"];
+    // Devolver cuentas divididas por tipo
+    const tiposPermitidos = [
+      "Activo",
+      "Pasivo",
+      "Patrimonio",
+    ];
     const cuentasDivididas = await cuentasFinales.reduce(
       async (accPromise, cuenta) => {
         const acc = await accPromise;
@@ -167,7 +171,7 @@ exports.listaBalanceGeneral = async (req, res) => {
           if (!acc[tipo]) {
             acc[tipo] = [];
           }
-          // Add total attribute to cuenta
+          // Agregar el atributo total a cada cuenta
           await calcularTotalCuenta(cuenta.id).then((total) => {
             cuenta.dataValues.total = total;
             acc[tipo].push(cuenta);
@@ -178,7 +182,66 @@ exports.listaBalanceGeneral = async (req, res) => {
       Promise.resolve({})
     );
 
+    const totalEjercicio = await calcularResultadoEjercicio(res);
+
+    const cuentaTotalEjercicio = {
+        nombre: "Resultado del Ejercicio",
+        total: totalEjercicio
+    };
+
+
+    cuentasDivididas["Patrimonio"] = cuentaTotalEjercicio;
+
     res.send(cuentasDivididas);
+  } catch (error) {
+    res
+      .status(500)
+      .send({ message: error.message || "Error al obtener las cuentas." });
+  }
+};
+
+calcularResultadoEjercicio = async (res) => {
+  try {
+    const cuentas = await Cuenta.findAll({
+      include: ["cuentasHijas"],
+    });
+
+    const cuentasFinales = cuentas.filter(
+      (cuenta) => cuenta.cuentasHijas.length === 0
+    );
+
+    // Devolver cuentas divididas por tipo
+    const tiposPermitidos = ["Ingreso", "Egreso"];
+    const cuentasDivididas = await cuentasFinales.reduce(
+      async (accPromise, cuenta) => {
+        const acc = await accPromise;
+        const tipo = cuenta.tipo;
+        if (tiposPermitidos.includes(tipo)) {
+          if (!acc[tipo]) {
+            acc[tipo] = [];
+          }
+          // Agregar el atributo total a cada cuenta
+          await calcularTotalCuenta(cuenta.id).then((total) => {
+            cuenta.dataValues.total = total;
+            acc[tipo].push(cuenta);
+          });
+        }
+        return acc;
+      },
+      Promise.resolve({})
+    );
+
+    const totalResultado =
+      cuentasDivididas["Ingreso"].reduce(
+        (acc, cuenta) => acc + cuenta.dataValues.total,
+        0
+      ) -
+      cuentasDivididas["Egreso"].reduce(
+        (acc, cuenta) => acc + cuenta.dataValues.total,
+        0
+      );
+
+    return totalResultado;
   } catch (error) {
     res
       .status(500)
