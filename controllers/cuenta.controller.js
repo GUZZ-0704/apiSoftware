@@ -146,7 +146,7 @@ exports.crearCuentaHija = async (req, res) => {
   }
 };
 
-// Se consiguen todas las cuentas finales de los activos, pasivos y patrimonio 
+// Se consiguen todas las cuentas finales de los activos, pasivos y patrimonio
 exports.listaBalanceGeneral = async (req, res) => {
   try {
     const cuentas = await Cuenta.findAll({
@@ -185,7 +185,6 @@ exports.listaBalanceGeneral = async (req, res) => {
       .send({ message: error.message || "Error al obtener las cuentas." });
   }
 };
-
 
 // Se consiguen todas las cuentas finales de los ingresos y egresos
 exports.listaEstadoResultados = async (req, res) => {
@@ -227,9 +226,6 @@ exports.listaEstadoResultados = async (req, res) => {
   }
 };
 
-
-
-
 // calcular total de cuenta
 calcularTotalCuenta = async (id) => {
   try {
@@ -250,6 +246,86 @@ calcularTotalCuenta = async (id) => {
     }
     //else
     return totalHaber - totalDebe;
+  } catch (error) {
+    res
+      .status(500)
+      .send({ message: error.message || "Error al obtener las cuentas." });
+  }
+};
+
+// obtener total por anio,mes
+exports.listaFlujoEfectivo = async (req, res) => {
+  try {
+    const cuentas = await Cuenta.findAll({
+      include: ["cuentasHijas"],
+    });
+
+    const cuentasFinales = cuentas.filter(
+      (cuenta) => cuenta.cuentasHijas.length === 0
+    );
+
+    //devolver cuentas divididas por tipo
+    const tiposPermitidos = ["Ingreso", "Egreso"];
+    const cuentasDivididas = await cuentasFinales.reduce(
+      async (accPromise, cuenta) => {
+        const acc = await accPromise;
+        const tipo = cuenta.tipo;
+        if (tiposPermitidos.includes(tipo)) {
+          if (!acc[tipo]) {
+            acc[tipo] = [];
+          }
+          // Add total por mes attribute to cuenta
+          await calcularTotalCuentaPorMes(cuenta.id, res).then(
+            (totalPorMes) => {
+              cuenta.dataValues.totalPorMes = totalPorMes;
+              acc[tipo].push(cuenta);
+            }
+          );
+        }
+        return acc;
+      },
+      Promise.resolve({})
+    );
+
+    res.send(cuentasDivididas);
+  } catch (error) {
+    res
+      .status(500)
+      .send({ message: error.message || "Error al obtener las cuentas." });
+  }
+};
+
+calcularTotalCuentaPorMes = async (id, res) => {
+  try {
+    //conseguir el total de debe haber de cuenta
+    const cuenta = await Cuenta.findByPk(id, {
+      include: [
+        {
+          association: "detallesTransacciones",
+          include: "transacciones",
+        },
+      ],
+    });
+    let totalPorMes = {};
+
+    cuenta.detallesTransacciones.forEach((detalle) => {
+      const fecha = detalle.transacciones.fecha;
+      if (fecha instanceof Date) {
+        const anio = fecha.getFullYear();
+        const mes = String(fecha.getMonth() + 1).padStart(2, "0"); // Months are zero-based
+        if (!totalPorMes[anio]) {
+          totalPorMes[anio] = {};
+        }
+        if (!totalPorMes[anio][mes]) {
+          totalPorMes[anio][mes] = 0;
+        }
+        totalPorMes[anio][mes] += detalle.debe - detalle.haber;
+      }
+    });
+
+    console.log(totalPorMes);
+
+    return totalPorMes;
   } catch (error) {
     res
       .status(500)

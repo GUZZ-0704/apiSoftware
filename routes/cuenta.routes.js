@@ -17,11 +17,26 @@ module.exports = (app) => {
   //Crear cuenta hija
   router.post("/:id/child", authMiddleware, cuentaController.crearCuentaHija);
 
-  //Obtener balance general 
-  router.get("/balanceGeneral/lista", authMiddleware, cuentaController.listaBalanceGeneral);
+  //Obtener balance general
+  router.get(
+    "/balanceGeneral/lista",
+    authMiddleware,
+    cuentaController.listaBalanceGeneral
+  );
 
   //Obtener estado de resultados
-    router.get("/estadoResultados/lista", authMiddleware, cuentaController.listaEstadoResultados);
+  router.get(
+    "/estadoResultados/lista",
+    authMiddleware,
+    cuentaController.listaEstadoResultados
+  );
+
+  //Obtener flujo de efectivo
+  router.get(
+    "/flujoEfectivo/lista",
+    authMiddleware,
+    cuentaController.listaFlujoEfectivo
+  );
 
   app.use("/cuentas", router);
 };
