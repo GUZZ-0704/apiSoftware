@@ -20,5 +20,8 @@ module.exports = (app) => {
   //Obtener balance general 
   router.get("/balanceGeneral/lista", authMiddleware, cuentaController.listaBalanceGeneral);
 
+  //Obtener estado de resultados
+    router.get("/estadoResultados/lista", authMiddleware, cuentaController.listaEstadoResultados);
+
   app.use("/cuentas", router);
 };

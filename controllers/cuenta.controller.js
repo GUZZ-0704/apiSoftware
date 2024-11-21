@@ -146,7 +146,7 @@ exports.crearCuentaHija = async (req, res) => {
   }
 };
 
-// Se consiguen todas las cuentas que no tienen hijo, es decir, las cuentas finales
+// Se consiguen todas las cuentas finales de los activos, pasivos y patrimonio 
 exports.listaBalanceGeneral = async (req, res) => {
   try {
     const cuentas = await Cuenta.findAll({
@@ -185,6 +185,49 @@ exports.listaBalanceGeneral = async (req, res) => {
       .send({ message: error.message || "Error al obtener las cuentas." });
   }
 };
+
+
+// Se consiguen todas las cuentas finales de los ingresos y egresos
+exports.listaEstadoResultados = async (req, res) => {
+  try {
+    const cuentas = await Cuenta.findAll({
+      include: ["cuentasHijas"],
+    });
+
+    const cuentasFinales = cuentas.filter(
+      (cuenta) => cuenta.cuentasHijas.length === 0
+    );
+
+    //devolver cuentas divididas por tipo
+    const tiposPermitidos = ["Ingreso", "Egreso"];
+    const cuentasDivididas = await cuentasFinales.reduce(
+      async (accPromise, cuenta) => {
+        const acc = await accPromise;
+        const tipo = cuenta.tipo;
+        if (tiposPermitidos.includes(tipo)) {
+          if (!acc[tipo]) {
+            acc[tipo] = [];
+          }
+          // Add total attribute to cuenta
+          await calcularTotalCuenta(cuenta.id).then((total) => {
+            cuenta.dataValues.total = total;
+            acc[tipo].push(cuenta);
+          });
+        }
+        return acc;
+      },
+      Promise.resolve({})
+    );
+
+    res.send(cuentasDivididas);
+  } catch (error) {
+    res
+      .status(500)
+      .send({ message: error.message || "Error al obtener las cuentas." });
+  }
+};
+
+
 
 
 // calcular total de cuenta
