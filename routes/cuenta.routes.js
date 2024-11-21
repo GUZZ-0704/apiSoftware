@@ -17,5 +17,8 @@ module.exports = (app) => {
   //Crear cuenta hija
   router.post("/:id/child", authMiddleware, cuentaController.crearCuentaHija);
 
+  //Obtener balance general 
+  router.get("/balanceGeneral/lista", authMiddleware, cuentaController.listaBalanceGeneral);
+
   app.use("/cuentas", router);
 };

@@ -145,3 +145,71 @@ exports.crearCuentaHija = async (req, res) => {
       .send({ message: error.message || "Error al crear la cuenta." });
   }
 };
+
+// Se consiguen todas las cuentas que no tienen hijo, es decir, las cuentas finales
+exports.listaBalanceGeneral = async (req, res) => {
+  try {
+    const cuentas = await Cuenta.findAll({
+      include: ["cuentasHijas"],
+    });
+
+    const cuentasFinales = cuentas.filter(
+      (cuenta) => cuenta.cuentasHijas.length === 0
+    );
+
+    //devolver cuentas divididas por tipo
+    const tiposPermitidos = ["Activo", "Pasivo", "Patrimonio"];
+    const cuentasDivididas = await cuentasFinales.reduce(
+      async (accPromise, cuenta) => {
+        const acc = await accPromise;
+        const tipo = cuenta.tipo;
+        if (tiposPermitidos.includes(tipo)) {
+          if (!acc[tipo]) {
+            acc[tipo] = [];
+          }
+          // Add total attribute to cuenta
+          await calcularTotalCuenta(cuenta.id).then((total) => {
+            cuenta.dataValues.total = total;
+            acc[tipo].push(cuenta);
+          });
+        }
+        return acc;
+      },
+      Promise.resolve({})
+    );
+
+    res.send(cuentasDivididas);
+  } catch (error) {
+    res
+      .status(500)
+      .send({ message: error.message || "Error al obtener las cuentas." });
+  }
+};
+
+
+// calcular total de cuenta
+calcularTotalCuenta = async (id) => {
+  try {
+    //conseguir el total de debe haber de cuenta
+    const cuenta = await Cuenta.findByPk(id, {
+      include: ["detallesTransacciones"],
+    });
+    let totalDebe = 0;
+    let totalHaber = 0;
+
+    cuenta.detallesTransacciones.forEach((detalle) => {
+      totalDebe += detalle.debe;
+      totalHaber += detalle.haber;
+    });
+
+    if (cuenta.tipo === "Activo" || cuenta.tipo === "Egreso") {
+      return totalDebe - totalHaber;
+    }
+    //else
+    return totalHaber - totalDebe;
+  } catch (error) {
+    res
+      .status(500)
+      .send({ message: error.message || "Error al obtener las cuentas." });
+  }
+};
