@@ -15,7 +15,7 @@ module.exports = app => {
     router.get("/anio/:anio", authMiddleware, libroDiarioController.listaLibroDiarioPorAnio);
 
     //obtener libros diarios de un año, mes
-    router.get("/mes/:mes", authMiddleware, libroDiarioController.listaLibroDiarioPorAnioMes);
+    router.get("/anio/:anio/mes/:mes", authMiddleware, libroDiarioController.listaLibroDiarioPorAnioMes);
 
     //obtener libros diarios de un año, mes, dia
     router.get("/dia/:dia", authMiddleware, libroDiarioController.listaLibroDiarioPorAnioMesDia);

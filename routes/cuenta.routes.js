@@ -17,6 +17,10 @@ module.exports = (app) => {
   //Crear cuenta hija
   router.post("/:id/child", authMiddleware, cuentaController.crearCuentaHija);
 
+
+  //obtener cuentas finales
+  router.get("/finales/lista", authMiddleware, cuentaController.listaCuentasFinales);
+
   //Obtener balance general
   router.get(
     "/balanceGeneral/lista",

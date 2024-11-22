@@ -146,6 +146,25 @@ exports.crearCuentaHija = async (req, res) => {
   }
 };
 
+
+  exports.listaCuentasFinales = async (req, res) => {
+    try {
+      const cuentas = await Cuenta.findAll({
+        include: ["cuentasHijas"],
+      });
+  
+      const cuentasFinales = cuentas.filter(
+        (cuenta) => cuenta.cuentasHijas.length === 0
+      );
+      
+      res.send(cuentasFinales);
+    } catch (error) {
+      res
+        .status(500)
+        .send({ message: error.message || "Error al obtener las cuentas." });
+    }
+  };
+
 // Se consiguen todas las cuentas finales de los activos, pasivos, patrimonio, ingresos y egresos
 exports.listaBalanceGeneral = async (req, res) => {
   try {

@@ -4,6 +4,7 @@ const DetalleTransaccion = db.detalleTransaccion;
 // Crear un nuevo DetalleTransaccion
 exports.crearDetalleTransaccion = async (req, res) => {
     try {
+        console.log(req.body);
         const data = await DetalleTransaccion.create(req.body);
         res.status(201).send(data);
     } catch (error) {
