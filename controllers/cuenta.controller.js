@@ -146,24 +146,23 @@ exports.crearCuentaHija = async (req, res) => {
   }
 };
 
+exports.listaCuentasFinales = async (req, res) => {
+  try {
+    const cuentas = await Cuenta.findAll({
+      include: ["cuentasHijas"],
+    });
 
-  exports.listaCuentasFinales = async (req, res) => {
-    try {
-      const cuentas = await Cuenta.findAll({
-        include: ["cuentasHijas"],
-      });
-  
-      const cuentasFinales = cuentas.filter(
-        (cuenta) => cuenta.cuentasHijas.length === 0
-      );
-      
-      res.send(cuentasFinales);
-    } catch (error) {
-      res
-        .status(500)
-        .send({ message: error.message || "Error al obtener las cuentas." });
-    }
-  };
+    const cuentasFinales = cuentas.filter(
+      (cuenta) => cuenta.cuentasHijas.length === 0
+    );
+
+    res.send(cuentasFinales);
+  } catch (error) {
+    res
+      .status(500)
+      .send({ message: error.message || "Error al obtener las cuentas." });
+  }
+};
 
 // Se consiguen todas las cuentas finales de los activos, pasivos, patrimonio, ingresos y egresos
 exports.listaBalanceGeneral = async (req, res) => {
@@ -177,11 +176,7 @@ exports.listaBalanceGeneral = async (req, res) => {
     );
 
     // Devolver cuentas divididas por tipo
-    const tiposPermitidos = [
-      "Activo",
-      "Pasivo",
-      "Patrimonio",
-    ];
+    const tiposPermitidos = ["Activo", "Pasivo", "Patrimonio"];
     const cuentasDivididas = await cuentasFinales.reduce(
       async (accPromise, cuenta) => {
         const acc = await accPromise;
@@ -204,10 +199,9 @@ exports.listaBalanceGeneral = async (req, res) => {
     const totalEjercicio = await calcularResultadoEjercicio(res);
 
     const cuentaTotalEjercicio = {
-        nombre: "Resultado del Ejercicio",
-        total: totalEjercicio
+      nombre: "Resultado del Ejercicio",
+      total: totalEjercicio,
     };
-
 
     cuentasDivididas["Patrimonio"] = cuentaTotalEjercicio;
 
@@ -384,14 +378,14 @@ calcularTotalCuentaPorMes = async (id, res) => {
       include: [
         {
           association: "detallesTransacciones",
-          include: "transacciones",
+          include: ["transacciones", "libroDiario"],
         },
       ],
     });
     let totalPorMes = {};
-
+    
     cuenta.detallesTransacciones.forEach((detalle) => {
-      const fecha = detalle.transacciones.fecha;
+      const fecha = detalle.libroDiario?.fecha;
       if (fecha instanceof Date) {
         const anio = fecha.getFullYear();
         const mes = String(fecha.getMonth() + 1).padStart(2, "0"); // Months are zero-based
@@ -401,7 +395,11 @@ calcularTotalCuentaPorMes = async (id, res) => {
         if (!totalPorMes[anio][mes]) {
           totalPorMes[anio][mes] = 0;
         }
-        totalPorMes[anio][mes] += detalle.debe - detalle.haber;
+        if (cuenta.tipo === "Ingreso") {
+          totalPorMes[anio][mes] += detalle.haber - detalle.debe;
+        } else {
+          totalPorMes[anio][mes] += detalle.debe - detalle.haber;
+        }
       }
     });
 
